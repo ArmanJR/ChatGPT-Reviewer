@@ -81,7 +81,7 @@ class OpenAIClient:
         best_of=1,
         frequency_penalty=self.frequency_penalty,
         presence_penalty=self.presence_penalty,
-        request_timeout=100,
+        timeout=100,
         max_tokens=self.max_tokens - len(self.encoder.encode(prompt_message)),
         stream=True, **self.openai_kwargs)
 
