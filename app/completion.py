@@ -4,11 +4,10 @@
 import os
 import backoff
 import openai
-from openai import AzureOpenAI
-
-client = AzureOpenAI(api_key=os.getenv("OPENAI_API_KEY"),
-api_version="2023-03-15-preview")
+from openai import OpenAI
 import tiktoken
+
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 if os.getenv("OPENAI_API_BASE"):
     # TODO: The 'openai.api_base' option isn't read in the client API. You will need to pass it when you instantiate the client, e.g. 'OpenAI(base_url=os.getenv("OPENAI_API_BASE"))'
