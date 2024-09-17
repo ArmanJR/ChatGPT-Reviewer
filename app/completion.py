@@ -4,14 +4,16 @@
 import os
 import backoff
 import openai
+from openai import AzureOpenAI
+
+client = AzureOpenAI(api_key=os.getenv("OPENAI_API_KEY"),
+api_version="2023-03-15-preview")
 import tiktoken
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
 if os.getenv("OPENAI_API_BASE"):
-    openai.api_base = os.getenv("OPENAI_API_BASE")
+    # TODO: The 'openai.api_base' option isn't read in the client API. You will need to pass it when you instantiate the client, e.g. 'OpenAI(base_url=os.getenv("OPENAI_API_BASE"))'
+    # openai.api_base = os.getenv("OPENAI_API_BASE")
     if "azure" in os.getenv("OPENAI_API_BASE"):
-        openai.api_type = "azure"
-        openai.api_version = "2023-03-15-preview"
 system_prompt = '''As a tech reviewer, please provide an in-depth review of the
 following pull request git diff data. Your task is to carefully analyze the title, body, and
 changes made in the pull request and identify any problems that need addressing including 
@@ -58,19 +60,18 @@ class OpenAIClient:
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": prompt},
         ]
-        response = openai.ChatCompletion.create(
-            messages=messages,
-            temperature=self.temperature,
-            frequency_penalty=self.frequency_penalty,
-            presence_penalty=self.presence_penalty,
-            request_timeout=100,
-            max_tokens=self.max_tokens - len(self.encoder.encode(f'{system_prompt}\n{prompt}')),
-            stream=True, **self.openai_kwargs)
+        response = client.chat.completions.create(messages=messages,
+        temperature=self.temperature,
+        frequency_penalty=self.frequency_penalty,
+        presence_penalty=self.presence_penalty,
+        request_timeout=100,
+        max_tokens=self.max_tokens - len(self.encoder.encode(f'{system_prompt}\n{prompt}')),
+        stream=True, **self.openai_kwargs)
 
         completion_text = ''
         for event in response:
-            if event["choices"] is not None and len(event["choices"]) > 0:
-                choice = event["choices"][0]
+            if event.choices is not None and len(event.choices) > 0:
+                choice = event.choices[0]
                 if choice.get("delta", None) is not None and choice["delta"].get("content", None) is not None:
                     completion_text += choice["delta"]["content"]
                 if choice.get("message", None) is not None and choice["message"].get("content", None) is not None:
@@ -80,15 +81,14 @@ class OpenAIClient:
     def get_completion_text(self, prompt) -> str:
         '''Invoke OpenAI API to get text completion'''
         prompt_message = f'{system_prompt}\n{prompt}'
-        response = openai.Completion.create(
-            prompt=prompt_message,
-            temperature=self.temperature,
-            best_of=1,
-            frequency_penalty=self.frequency_penalty,
-            presence_penalty=self.presence_penalty,
-            request_timeout=100,
-            max_tokens=self.max_tokens - len(self.encoder.encode(prompt_message)),
-            stream=True, **self.openai_kwargs)
+        response = client.completions.create(prompt=prompt_message,
+        temperature=self.temperature,
+        best_of=1,
+        frequency_penalty=self.frequency_penalty,
+        presence_penalty=self.presence_penalty,
+        request_timeout=100,
+        max_tokens=self.max_tokens - len(self.encoder.encode(prompt_message)),
+        stream=True, **self.openai_kwargs)
 
         completion_text = ''
         for event in response:
